@@ -132,15 +132,15 @@
         <item quantity="one">%d çalma listesi</item>
         <item quantity="other">%d çalma listeleri</item>
     </plurals>
-    <plurals name="n_week" tools:ignore="MissingQuantity">
+    <plurals name="n_week">
         <item quantity="one">%d hafta</item>
         <item quantity="other">%d haftalar</item>
     </plurals>
-    <plurals name="n_month" tools:ignore="MissingQuantity">
+    <plurals name="n_month">
         <item quantity="one">%d ay</item>
         <item quantity="other">%d aylar</item>
     </plurals>
-    <plurals name="n_year" tools:ignore="MissingQuantity">
+    <plurals name="n_year">
         <item quantity="one">%d yıl</item>
         <item quantity="other">%d yıllar</item>
     </plurals>
@@ -292,9 +292,7 @@
     <string name="search_history">Arama geçmişi</string>
     <string name="hide_explicit">Uygunsuz içeriği gizle</string>
     <string name="discord_integration">Discord Entegrasyonu</string>
-    <string name="discord_information">InnerTune, Discord hesabınızın durumunu ayarlamak için KizzyRPC kütüphanesini kullanır. Bu, Discord\'un Hizmet Şartları\'nın ihlali olarak kabul edilebilecek Discord Geçit bağlantısının kullanılmasını gerektirir. Fakat kullanıcı hesaplarının bu nedenle askıya alındığı bilinen bir örnek yoktur. Riski size ait olmak üzere kullanın.
-\n
-\nInnerTune yalnızca belirtecinizi çıkarır ve diğer her şey yerel olarak saklanır.</string>
+    <string name="discord_information">InnerTune, Discord hesabınızın durumunu ayarlamak için KizzyRPC kütüphanesini kullanır. Bu, Discord\'un Hizmet Şartları\'nın ihlali olarak kabul edilebilecek Discord Geçit bağlantısının kullanılmasını gerektirir. Fakat kullanıcı hesaplarının bu nedenle askıya alındığı bilinen bir örnek yoktur. Riski size ait olmak üzere kullanın. \n \nInnerTune yalnızca belirtecinizi çıkarır ve diğer her şey yerel olarak saklanır.</string>
     <string name="logout">Oturumu kapat</string>
     <string name="enable_discord_rpc">Rich Presence\'ı etkinleştir</string>
     <string name="use_login_for_browse">İçerikleri görmek için Giriş yap\'ı kullanın</string>
