@@ -45,6 +45,12 @@ import com.malopieds.innertune.ui.component.shimmer.ShimmerHost
 import com.malopieds.innertune.ui.component.shimmer.TextPlaceholder
 import com.malopieds.innertune.ui.menu.YouTubeAlbumMenu
 import com.malopieds.innertune.viewmodels.ExploreViewModel
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.rememberAsyncImagePainter
+import androidx.compose.ui.draw.clip
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -82,41 +88,55 @@ fun ExploreScreen(
                     },
                 )
 
-                LazyRow(
-                    contentPadding =
-                        WindowInsets.systemBars
-                            .only(WindowInsetsSides.Horizontal)
-                            .asPaddingValues(),
+                androidx.compose.foundation.lazy.grid.LazyHorizontalGrid(
+                    rows = GridCells.Fixed(2),
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
+                    verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .height(340.dp)
                 ) {
-                    items(
-                        items = newReleaseAlbums,
-                        key = { it.id },
-                    ) { album ->
-                        YouTubeGridItem(
-                            item = album,
-                            isActive = mediaMetadata?.album?.id == album.id,
-                            isPlaying = isPlaying,
-                            coroutineScope = coroutineScope,
-                            modifier =
-                                Modifier
-                                    .combinedClickable(
-                                        onClick = {
-                                            navController.navigate("album/${album.id}")
-                                        },
-                                        onLongClick = {
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            menuState.show {
-                                                YouTubeAlbumMenu(
-                                                    albumItem = album,
-                                                    navController = navController,
-                                                    onDismiss = menuState::dismiss,
-                                                )
-                                            }
-                                        },
-                                    ).animateItemPlacement(),
-                        )
+                    items(newReleaseAlbums.size) { idx ->
+                        val album = newReleaseAlbums[idx]
+                        Column(
+                            modifier = Modifier
+                                .width(110.dp)
+                                .clickable {
+                                    navController.navigate("album/${album.id}")
+                                },
+                            horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+                        ) {
+                            androidx.compose.foundation.Image(
+                                painter = coil.compose.rememberAsyncImagePainter(album.thumbnail),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .width(110.dp)
+                                    .height(110.dp)
+                                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp)),
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            androidx.compose.material3.Text(
+                                text = album.title,
+                                style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                modifier = Modifier.align(androidx.compose.ui.Alignment.Start),
+                            )
+                            androidx.compose.material3.Text(
+                                text = album.artists?.joinToString { it.name } ?: "",
+                                style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                                color = androidx.compose.material3.MaterialTheme.colorScheme.secondary,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                modifier = Modifier.align(androidx.compose.ui.Alignment.Start),
+                            )
+                        }
                     }
                 }
+                Spacer(modifier = Modifier.height(32.dp))
             }
 
             explorePage?.moodAndGenres?.let { moodAndGenres ->

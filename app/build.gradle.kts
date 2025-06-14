@@ -16,7 +16,7 @@ android {
     compileSdk = 35
     defaultConfig {
         applicationId = "com.malopieds.innertune"
-        minSdk = 24
+        minSdk = 25
         targetSdk = 35
         versionCode = 31
         versionName = "0.5.14"
@@ -138,4 +138,6 @@ dependencies {
     coreLibraryDesugaring(libs.desugaring)
 
     implementation(libs.timber)
+
+    implementation("androidx.wear:wear-ongoing:1.0.0")
 }

@@ -47,6 +47,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.TextUnit
 import com.malopieds.innertune.BuildConfig
 import com.malopieds.innertune.LocalPlayerConnection
 import com.malopieds.innertune.R
@@ -79,6 +80,7 @@ fun Lyrics(
     modifier: Modifier = Modifier,
     changeColor: Boolean,
     color: Color,
+    fontSize: TextUnit = 25.sp,
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val menuState = LocalMenuState.current
@@ -262,7 +264,7 @@ fun Lyrics(
                 ) { index, item ->
                     Text(
                         text = item.text,
-                        fontSize = 20.sp,
+                        fontSize = fontSize * 1.5,
                         color =
                             if (index ==
                                 displayedCurrentLineIndex
@@ -294,7 +296,7 @@ fun Lyrics(
         if (lyrics == LYRICS_NOT_FOUND) {
             Text(
                 text = stringResource(R.string.lyrics_not_found),
-                fontSize = 20.sp,
+                fontSize = fontSize * 1.2,
                 color = MaterialTheme.colorScheme.secondary,
                 textAlign =
                     when (lyricsTextPosition) {

@@ -78,6 +78,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastForEachIndexed
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.graphics.ColorUtils
@@ -135,6 +136,11 @@ import kotlinx.coroutines.withContext
 import me.saket.squiggles.SquigglySlider
 import java.time.LocalDateTime
 import kotlin.math.roundToInt
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.layout.widthIn
+import com.malopieds.innertune.ui.component.Lyrics
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.layout.fillMaxHeight
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -238,7 +244,7 @@ fun BottomSheetPlayer(
         hasGradientColours -> {
             ColorUtils.calculateContrast(
                 gradientColors.first().toArgb(),
-                Color.White.toArgb(),
+                MaterialTheme.colorScheme.onBackground.toArgb(),
             )
         }
         else -> whiteContrastThreshold
@@ -248,7 +254,7 @@ fun BottomSheetPlayer(
         hasGradientColours -> {
             ColorUtils.calculateContrast(
                 gradientColors.last().toArgb(),
-                Color.Black.toArgb(),
+                MaterialTheme.colorScheme.onBackground.toArgb(),
             )
         }
         else -> blackContrastThreshold
@@ -263,13 +269,13 @@ fun BottomSheetPlayer(
                             whiteGradientContrast < whiteContrastThreshold &&
                             blackGradientContrast > blackContrastThreshold -> {
                         changeColor = true
-                        Color.Black
+                        MaterialTheme.colorScheme.onBackground
                     }
                     hasGradientColours &&
                             whiteGradientContrast > whiteContrastThreshold &&
                             blackGradientContrast < blackContrastThreshold -> {
                         changeColor = true
-                        Color.White
+                        MaterialTheme.colorScheme.onBackground
                     }
                     else -> {
                         changeColor = false
@@ -585,8 +591,8 @@ fun BottomSheetPlayer(
                 ) { title ->
                     Text(
                         text = title,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        fontSize = 22.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         color = onBackgroundColor,
@@ -622,13 +628,16 @@ fun BottomSheetPlayer(
                     ) { name ->
                         Text(
                             text = name,
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            fontSize = 14.sp,
                             color = onBackgroundColor,
                             maxLines = 1,
                             modifier =
                                 Modifier.clickable(enabled = artist.id != null) {
-                                    navController.navigate("artist/${artist.id}")
-                                    state.collapseSoft()
+                                    artist.id?.let { id ->
+                                        navController.navigate("artist/$id")
+                                        state.collapseSoft()
+                                    }
                                 },
                         )
                     }
@@ -641,7 +650,8 @@ fun BottomSheetPlayer(
                         ) { comma ->
                             Text(
                                 text = comma,
-                                style = MaterialTheme.typography.titleMedium,
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                fontSize = 14.sp,
                                 color = onBackgroundColor,
                             )
                         }
@@ -883,7 +893,7 @@ fun BottomSheetPlayer(
                 }
             }
 
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(16.dp))
 
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -910,106 +920,100 @@ fun BottomSheetPlayer(
                 )
             }
 
-            Spacer(Modifier.height(6.dp))
-
+            Spacer(Modifier.height(32.dp))
             Row(
+                horizontalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterHorizontally),
                 verticalAlignment = Alignment.CenterVertically,
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = PlayerHorizontalPadding),
+                modifier = Modifier
+                    .fillMaxWidth()
             ) {
-                Box(modifier = Modifier.weight(1f)) {
-                    ResizableIconButton(
-                        icon = if (currentSong?.song?.liked == true) R.drawable.favorite else R.drawable.favorite_border,
-                        color = if (currentSong?.song?.liked == true) MaterialTheme.colorScheme.error else onBackgroundColor,
-                        modifier =
-                            Modifier
-                                .size(32.dp)
-                                .padding(4.dp)
-                                .align(Alignment.Center),
-                        onClick = playerConnection::toggleLike,
-                    )
-                }
-
-                Box(modifier = Modifier.weight(1f)) {
-                    ResizableIconButton(
-                        icon = R.drawable.skip_previous,
-                        enabled = canSkipPrevious,
-                        color = onBackgroundColor,
-                        modifier =
-                            Modifier
-                                .size(32.dp)
-                                .align(Alignment.Center),
-                        onClick = playerConnection::seekToPrevious,
-                    )
-                }
-
-                Spacer(Modifier.width(8.dp))
-
                 Box(
-                    modifier =
-                        Modifier
-                            .size(72.dp)
-                            .clip(RoundedCornerShape(playPauseRoundness))
-                            .background(MaterialTheme.colorScheme.secondaryContainer)
-                            .clickable {
-                                if (playbackState == STATE_ENDED) {
-                                    playerConnection.player.seekTo(0, 0)
-                                    playerConnection.player.playWhenReady = true
-                                } else {
-                                    playerConnection.player.togglePlayPause()
-                                }
-                            },
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(MaterialTheme.colorScheme.surfaceContainer)
+                        .size(width = 72.dp, height = 56.dp)
+                        .clickable { playerConnection.toggleLike() },
+                    contentAlignment = Alignment.Center
                 ) {
                     Image(
-                        painter =
-                            painterResource(
-                                if (playbackState ==
-                                    STATE_ENDED
-                                ) {
-                                    R.drawable.replay
-                                } else if (isPlaying) {
-                                    R.drawable.pause
-                                } else {
-                                    R.drawable.play
-                                },
-                            ),
+                        painter = painterResource(
+                            if (currentSong?.song?.liked == true) R.drawable.favorite else R.drawable.favorite_border
+                        ),
                         contentDescription = null,
-                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSecondaryContainer),
-                        modifier =
-                            Modifier
-                                .align(Alignment.Center)
-                                .size(36.dp),
+                        colorFilter = ColorFilter.tint(if (currentSong?.song?.liked == true) MaterialTheme.colorScheme.error else Color.White),
+                        modifier = Modifier.size(32.dp)
                     )
                 }
-
-                Spacer(Modifier.width(8.dp))
-
-                Box(modifier = Modifier.weight(1f)) {
-                    ResizableIconButton(
-                        icon = R.drawable.skip_next,
-                        enabled = canSkipNext,
-                        color = onBackgroundColor,
-                        modifier =
-                            Modifier
-                                .size(32.dp)
-                                .align(Alignment.Center),
-                        onClick = playerConnection::seekToNext,
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(MaterialTheme.colorScheme.surfaceContainer)
+                        .size(width = 72.dp, height = 56.dp)
+                        .clickable { showLyrics = !showLyrics },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(R.drawable.lyrics),
+                        contentDescription = null,
+                        colorFilter = ColorFilter.tint(if (showLyrics) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)),
+                        modifier = Modifier.size(32.dp)
                     )
                 }
-
-                Box(modifier = Modifier.weight(1f)) {
-                    ResizableIconButton(
-                        icon = R.drawable.lyrics,
-                        color = onBackgroundColor,
-                        modifier =
-                            Modifier
-                                .size(32.dp)
-                                .padding(4.dp)
-                                .align(Alignment.Center)
-                                .alpha(if (showLyrics) 1f else 0.5f),
-                        onClick = { showLyrics = !showLyrics },
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(MaterialTheme.colorScheme.surfaceContainer)
+                        .size(width = 72.dp, height = 56.dp)
+                        .clickable {
+                            if (download?.state == Download.STATE_COMPLETED) {
+                                DownloadService.sendRemoveDownload(
+                                    context,
+                                    ExoDownloadService::class.java,
+                                    mediaMetadata!!.id,
+                                    false,
+                                )
+                            } else {
+                                database.transaction {
+                                    insert(mediaMetadata!!)
+                                }
+                                val downloadRequest =
+                                    DownloadRequest
+                                        .Builder(mediaMetadata!!.id, mediaMetadata!!.id.toUri())
+                                        .setCustomCacheKey(mediaMetadata!!.id)
+                                        .setData(mediaMetadata!!.title.toByteArray())
+                                        .build()
+                                DownloadService.sendAddDownload(
+                                    context,
+                                    ExoDownloadService::class.java,
+                                    downloadRequest,
+                                    false,
+                                )
+                            }
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(
+                            if (download?.state == Download.STATE_COMPLETED) R.drawable.offline else R.drawable.download
+                        ),
+                        contentDescription = null,
+                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface),
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(MaterialTheme.colorScheme.surfaceContainer)
+                        .size(width = 72.dp, height = 56.dp)
+                        .clickable { showChoosePlaylistDialog = true },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(R.drawable.playlist_add),
+                        contentDescription = null,
+                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface),
+                        modifier = Modifier.size(32.dp)
                     )
                 }
             }
@@ -1052,32 +1056,621 @@ fun BottomSheetPlayer(
                     }
                 }
             }
-
             else -> {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier =
-                        Modifier
-                            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                            .padding(bottom = queueSheetState.collapsedBound),
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
+                        .padding(bottom = queueSheetState.collapsedBound)
                 ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Thumbnail(
-                            sliderPositionProvider = { sliderPosition },
-                            modifier = Modifier.nestedScroll(state.preUpPostDownNestedScrollConnection),
-                            changeColor = changeColor,
-                            color = onBackgroundColor,
+                    mediaMetadata?.thumbnailUrl?.let { url ->
+                        AsyncImage(
+                            model = url,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.matchParentSize().fillMaxSize().alpha(0.7f)
                         )
                     }
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.80f),
+                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
+                                    )
+                                )
+                            )
+                    )
 
-                    mediaMetadata?.let {
-                        controlsContent(it)
+                    if (!showLyrics) {
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .fillMaxWidth()
+                                .padding(top = 50.dp, start = 24.dp, end = 24.dp, bottom = 0.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            mediaMetadata?.thumbnailUrl?.let { url ->
+                                Box(
+                                    modifier = Modifier
+                                        .size(210.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceContainer),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    AsyncImage(
+                                        model = url,
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp))
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.height(32.dp))
+                            mediaMetadata?.let {
+                                Text(
+                                    text = it.title,
+                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    fontSize = 18.sp,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    it.artists.forEachIndexed { index, artist ->
+                                        Text(
+                                            text = artist.name,
+                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                                            fontSize = 12.sp,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier
+                                                .clickable(enabled = artist.id != null) {
+                                                    artist.id?.let { id ->
+                                                        navController.navigate("artist/$id")
+                                                        state.collapseSoft()
+                                                    }
+                                                }
+                                        )
+                                        if (index != it.artists.lastIndex) {
+                                            Text(
+                                                text = ", ",
+                                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                                                fontSize = 12.sp,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            Spacer(Modifier.height(32.dp))
+                            val playPauseRoundness by animateDpAsState(
+                                targetValue = if (isPlaying) 16.dp else 52.dp,
+                                animationSpec = tween(durationMillis = 90, easing = LinearEasing),
+                                label = "playPauseRoundnessPortrait",
+                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(
+                                            if (isSystemInDarkTheme) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.onBackground
+                                        )
+                                        .clickable(enabled = canSkipPrevious) { playerConnection.seekToPrevious() },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Image(
+                                        painter = painterResource(R.drawable.skip_previous),
+                                        contentDescription = null,
+                                        colorFilter = ColorFilter.tint(Color.White),
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                                Spacer(Modifier.width(20.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .size(78.dp)
+                                        .clip(RoundedCornerShape(playPauseRoundness))
+                                        .background(MaterialTheme.colorScheme.primary)
+                                        .clickable {
+                                            if (playbackState == STATE_ENDED) {
+                                                playerConnection.player.seekTo(0, 0)
+                                                playerConnection.player.playWhenReady = true
+                                            } else {
+                                                playerConnection.player.togglePlayPause()
+                                            }
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Image(
+                                        painter = painterResource(
+                                            if (playbackState == STATE_ENDED) R.drawable.replay
+                                            else if (isPlaying) R.drawable.pause
+                                            else R.drawable.play
+                                        ),
+                                        contentDescription = null,
+                                        colorFilter = ColorFilter.tint(Color.White),
+                                        modifier = Modifier.size(56.dp)
+                                    )
+                                }
+                                Spacer(Modifier.width(20.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(
+                                            if (isSystemInDarkTheme) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.onBackground
+                                        )
+                                        .clickable(enabled = canSkipNext) { playerConnection.seekToNext() },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Image(
+                                        painter = painterResource(R.drawable.skip_next),
+                                        contentDescription = null,
+                                        colorFilter = ColorFilter.tint(Color.White),
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.height(32.dp))
+                            when (sliderStyle) {
+                                SliderStyle.SQUIGGLY -> {
+                                    SquigglySlider(
+                                        value = (sliderPosition ?: position).toFloat(),
+                                        valueRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat()),
+                                        onValueChange = {
+                                            sliderPosition = it.toLong()
+                                        },
+                                        onValueChangeFinished = {
+                                            sliderPosition?.let {
+                                                playerConnection.player.seekTo(it)
+                                                position = it
+                                            }
+                                            sliderPosition = null
+                                        },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        squigglesSpec =
+                                            SquigglySlider.SquigglesSpec(
+                                                amplitude = if (isPlaying) (2.dp).coerceAtLeast(2.dp) else 0.dp,
+                                                strokeWidth = 3.dp,
+                                            ),
+                                    )
+                                }
+                                SliderStyle.DEFAULT -> {
+                                    Slider(
+                                        value = (sliderPosition ?: position).toFloat(),
+                                        valueRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat()),
+                                        onValueChange = {
+                                            sliderPosition = it.toLong()
+                                        },
+                                        onValueChangeFinished = {
+                                            sliderPosition?.let {
+                                                playerConnection.player.seekTo(it)
+                                                position = it
+                                            }
+                                            sliderPosition = null
+                                        },
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.height(16.dp))
+                            Row(
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = PlayerHorizontalPadding + 4.dp),
+                            ) {
+                                Text(
+                                    text = makeTimeString(sliderPosition ?: position),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+
+                                Text(
+                                    text = if (duration != C.TIME_UNSET) makeTimeString(duration) else "",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                    } else {
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .fillMaxWidth()
+                                .padding(top = 50.dp, start = 24.dp, end = 24.dp, bottom = 0.dp),
+                            horizontalAlignment = Alignment.Start
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                mediaMetadata?.thumbnailUrl?.let { url ->
+                                    Box(
+                                        modifier = Modifier
+                                            .size(54.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceContainer),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        AsyncImage(
+                                            model = url,
+                                            contentDescription = null,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp))
+                                        )
+                                    }
+                                }
+                                Spacer(Modifier.width(16.dp))
+                                Column(
+                                    verticalArrangement = Arrangement.Center,
+                                    horizontalAlignment = Alignment.Start,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    mediaMetadata?.let {
+                                        Text(
+                                            text = it.title,
+                                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.onBackground,
+                                            fontSize = 18.sp,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.fillMaxWidth(),
+                                        )
+                                        Spacer(Modifier.height(4.dp))
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            it.artists.forEachIndexed { index, artist ->
+                                                Text(
+                                                    text = artist.name,
+                                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                                                    fontSize = 12.sp,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    modifier = Modifier
+                                                        .clickable(enabled = artist.id != null) {
+                                                            artist.id?.let { id ->
+                                                                navController.navigate("artist/$id")
+                                                                state.collapseSoft()
+                                                            }
+                                                        }
+                                                )
+                                                if (index != it.artists.lastIndex) {
+                                                    Text(
+                                                        text = ", ",
+                                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                                                        fontSize = 12.sp,
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            Spacer(Modifier.height(32.dp))
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .fillMaxHeight(0.515f)
+                                    .padding(vertical = 8.dp)
+                            ) {
+                                Lyrics(
+                                    sliderPositionProvider = { sliderPosition },
+                                    changeColor = false,
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    fontSize = 16.sp,
+                                )
+                            }
+                            Spacer(Modifier.height(16.dp))
+                            val playPauseRoundness by animateDpAsState(
+                                targetValue = if (isPlaying) 16.dp else 52.dp,
+                                animationSpec = tween(durationMillis = 90, easing = LinearEasing),
+                                label = "playPauseRoundnessPortraitLyrics",
+                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(
+                                            if (isSystemInDarkTheme) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.onBackground
+                                        )
+                                        .clickable(enabled = canSkipPrevious) { playerConnection.seekToPrevious() },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Image(
+                                        painter = painterResource(R.drawable.skip_previous),
+                                        contentDescription = null,
+                                        colorFilter = ColorFilter.tint(Color.White),
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                                Spacer(Modifier.width(20.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .size(78.dp)
+                                        .clip(RoundedCornerShape(playPauseRoundness))
+                                        .background(MaterialTheme.colorScheme.primary)
+                                        .clickable {
+                                            if (playbackState == STATE_ENDED) {
+                                                playerConnection.player.seekTo(0, 0)
+                                                playerConnection.player.playWhenReady = true
+                                            } else {
+                                                playerConnection.player.togglePlayPause()
+                                            }
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Image(
+                                        painter = painterResource(
+                                            if (playbackState == STATE_ENDED) R.drawable.replay
+                                            else if (isPlaying) R.drawable.pause
+                                            else R.drawable.play
+                                        ),
+                                        contentDescription = null,
+                                        colorFilter = ColorFilter.tint(Color.White),
+                                        modifier = Modifier.size(56.dp)
+                                    )
+                                }
+                                Spacer(Modifier.width(20.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(
+                                            if (isSystemInDarkTheme) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.onBackground
+                                        )
+                                        .clickable(enabled = canSkipNext) { playerConnection.seekToNext() },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Image(
+                                        painter = painterResource(R.drawable.skip_next),
+                                        contentDescription = null,
+                                        colorFilter = ColorFilter.tint(Color.White),
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.height(32.dp))
+                            when (sliderStyle) {
+                                SliderStyle.SQUIGGLY -> {
+                                    SquigglySlider(
+                                        value = (sliderPosition ?: position).toFloat(),
+                                        valueRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat()),
+                                        onValueChange = {
+                                            sliderPosition = it.toLong()
+                                        },
+                                        onValueChangeFinished = {
+                                            sliderPosition?.let {
+                                                playerConnection.player.seekTo(it)
+                                                position = it
+                                            }
+                                            sliderPosition = null
+                                        },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        squigglesSpec =
+                                            SquigglySlider.SquigglesSpec(
+                                                amplitude = if (isPlaying) (2.dp).coerceAtLeast(2.dp) else 0.dp,
+                                                strokeWidth = 3.dp,
+                                            ),
+                                    )
+                                }
+                                SliderStyle.DEFAULT -> {
+                                    Slider(
+                                        value = (sliderPosition ?: position).toFloat(),
+                                        valueRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat()),
+                                        onValueChange = {
+                                            sliderPosition = it.toLong()
+                                        },
+                                        onValueChangeFinished = {
+                                            sliderPosition?.let {
+                                                playerConnection.player.seekTo(it)
+                                                position = it
+                                            }
+                                            sliderPosition = null
+                                        },
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.height(16.dp))
+                            Row(
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = PlayerHorizontalPadding + 4.dp),
+                            ) {
+                                Text(
+                                    text = makeTimeString(sliderPosition ?: position),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+
+                                Text(
+                                    text = if (duration != C.TIME_UNSET) makeTimeString(duration) else "",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
                     }
 
-                    Spacer(Modifier.height(24.dp))
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .height(140.dp)
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        MaterialTheme.colorScheme.surfaceContainer
+                                    )
+                                )
+                            )
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterHorizontally),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(MaterialTheme.colorScheme.surfaceContainer)
+                                .size(width = 72.dp, height = 56.dp)
+                                .clickable { playerConnection.toggleLike() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = painterResource(
+                                    if (currentSong?.song?.liked == true) R.drawable.favorite else R.drawable.favorite_border
+                                ),
+                                contentDescription = null,
+                                colorFilter = ColorFilter.tint(if (currentSong?.song?.liked == true) MaterialTheme.colorScheme.error else Color.White),
+                                modifier = Modifier.size(15.dp)
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(MaterialTheme.colorScheme.surfaceContainer)
+                                .size(width = 72.dp, height = 56.dp)
+                                .clickable { showLyrics = !showLyrics },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = painterResource(R.drawable.lyrics),
+                                contentDescription = null,
+                                colorFilter = ColorFilter.tint(if (showLyrics) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)),
+                                modifier = Modifier.size(15.dp)
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(MaterialTheme.colorScheme.surfaceContainer)
+                                .size(width = 72.dp, height = 56.dp)
+                                .clickable {
+                                    if (download?.state == Download.STATE_COMPLETED) {
+                                        DownloadService.sendRemoveDownload(
+                                            context,
+                                            ExoDownloadService::class.java,
+                                            mediaMetadata!!.id,
+                                            false,
+                                        )
+                                    } else {
+                                        database.transaction {
+                                            insert(mediaMetadata!!)
+                                        }
+                                        val downloadRequest =
+                                            DownloadRequest
+                                                .Builder(mediaMetadata!!.id, mediaMetadata!!.id.toUri())
+                                                .setCustomCacheKey(mediaMetadata!!.id)
+                                                .setData(mediaMetadata!!.title.toByteArray())
+                                                .build()
+                                        DownloadService.sendAddDownload(
+                                            context,
+                                            ExoDownloadService::class.java,
+                                            downloadRequest,
+                                            false,
+                                        )
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = painterResource(
+                                    if (download?.state == Download.STATE_COMPLETED) R.drawable.offline else R.drawable.download
+                                ),
+                                contentDescription = null,
+                                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface),
+                                modifier = Modifier.size(15.dp)
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(MaterialTheme.colorScheme.surfaceContainer)
+                                .size(width = 72.dp, height = 56.dp)
+                                .clickable { showChoosePlaylistDialog = true },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = painterResource(R.drawable.playlist_add),
+                                contentDescription = null,
+                                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface),
+                                modifier = Modifier.size(15.dp)
+                            )
+                        }
+                    }
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(top = 50.dp, end = 24.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(RoundedCornerShape(50))
+                                .background(MaterialTheme.colorScheme.surfaceContainer)
+                                .clickable {
+                                    menuState.show {
+                                        PlayerMenu(
+                                            mediaMetadata = mediaMetadata,
+                                            navController = navController,
+                                            playerBottomSheetState = state,
+                                            onShowDetailsDialog = {},
+                                            onDismiss = menuState::dismiss,
+                                        )
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.more_horiz),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    }
                 }
             }
         }

@@ -296,7 +296,6 @@ class MainActivity : ComponentActivity() {
                             Screens.Home.route,
                             Screens.Explore.route,
                             Screens.Library.route,
-                            "settings",
                         )
 
                     val (query, onQueryChange) =
@@ -337,9 +336,12 @@ class MainActivity : ComponentActivity() {
 
                     val shouldShowSearchBar =
                         remember(active, navBackStackEntry) {
-                            active ||
-                                navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route } ||
-                                navBackStackEntry?.destination?.route?.startsWith("search/") == true
+                            val isHome = navBackStackEntry?.destination?.route == com.malopieds.innertune.ui.screens.Screens.Home.route
+                            (active && isHome) ||
+                                (!isHome && (active ||
+                                    navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route } ||
+                                    navBackStackEntry?.destination?.route?.startsWith("search/") == true)
+                                )
                         }
                     val shouldShowNavigationBar =
                         remember(navBackStackEntry, active) {
@@ -414,6 +416,7 @@ class MainActivity : ComponentActivity() {
                     }
                     LaunchedEffect(active) {
                         if (active) {
+                            searchBarFocusRequester.requestFocus()
                             searchBarScrollBehavior.state.resetHeightOffset()
                             topAppBarScrollBehavior.state.resetHeightOffset()
                         }
@@ -515,6 +518,17 @@ class MainActivity : ComponentActivity() {
                         onDispose { removeOnNewIntentListener(listener) }
                     }
 
+                    // Listen for search activation event from HomeScreen using only available imports
+                    LaunchedEffect(navBackStackEntry) {
+                        val handle = navBackStackEntry?.savedStateHandle
+                        handle?.getLiveData<Boolean>("active")?.observeForever { shouldActivate ->
+                            if (shouldActivate == true) {
+                                onActiveChange(true)
+                                handle.set("active", false)
+                            }
+                        }
+                    }
+
                     CompositionLocalProvider(
                         LocalDatabase provides database,
                         LocalContentColor provides contentColorFor(MaterialTheme.colorScheme.surface),
@@ -580,13 +594,14 @@ class MainActivity : ComponentActivity() {
                                     },
                                 ),
                         ) {
-                            navigationBuilder(navController, topAppBarScrollBehavior, latestVersionName)
+                            navigationBuilder(navController, topAppBarScrollBehavior, latestVersionName, searchBarVisible = shouldShowSearchBar)
                         }
 
                         AnimatedVisibility(
                             visible = shouldShowSearchBar,
                             enter = fadeIn(),
                             exit = fadeOut(),
+                            modifier = Modifier.align(Alignment.TopCenter)
                         ) {
                             SearchBar(
                                 query = query,

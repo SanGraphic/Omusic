@@ -135,6 +135,9 @@ import javax.inject.Inject
 import kotlin.math.min
 import kotlin.math.pow
 import kotlin.time.Duration.Companion.seconds
+import androidx.core.app.NotificationCompat
+import androidx.wear.ongoing.OngoingActivity
+import androidx.wear.ongoing.Status
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @AndroidEntryPoint
@@ -193,6 +196,8 @@ class MusicService :
     private var discordRpc: DiscordRPC? = null
 
     val automixItems = MutableStateFlow<List<MediaItem>>(emptyList())
+
+    private var ongoingActivity: OngoingActivity? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -418,6 +423,27 @@ class MusicService :
                     .build(),
             ),
         )
+        // Ongoing Activity integration (minimal)
+        val song = currentSong.value
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(R.drawable.small_icon)
+            .setContentTitle(song?.song?.title ?: getString(R.string.music_player))
+            .setContentText(song?.artists?.joinToString(", ") { it.name } ?: "")
+            .setOngoing(true)
+        val status = Status.Builder()
+            .addTemplate(song?.song?.title ?: getString(R.string.music_player))
+            .build()
+        val intent = PendingIntent.getActivity(
+            this,
+            0,
+            Intent(this, MainActivity::class.java),
+            PendingIntent.FLAG_IMMUTABLE
+        )
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+        notificationManager.cancel(NOTIFICATION_ID)
+        ongoingActivity = null
+        val notification = builder.build()
+        notificationManager.notify(NOTIFICATION_ID, notification)
     }
 
     private suspend fun recoverSong(
@@ -897,6 +923,9 @@ class MusicService :
     }
 
     override fun onDestroy() {
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+        notificationManager.cancel(NOTIFICATION_ID)
+        ongoingActivity = null
         if (dataStore.get(PersistentQueueKey, true)) {
             saveQueueToDisk()
         }

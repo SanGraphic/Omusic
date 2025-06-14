@@ -77,7 +77,7 @@ fun AboutScreen(
             verticalAlignment = Alignment.Top,
         ) {
             Text(
-                text = "InnerTune",
+                text = "Omusic",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
@@ -133,7 +133,7 @@ fun AboutScreen(
         Spacer(Modifier.height(4.dp))
 
         Text(
-            text = "by Zion Huang, forked by Malopieds",
+            text = "by Omusic contributors, a fork of Malopieds' InnerTune (which is a fork of Zion Huang's InnerTune)",
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.secondary,
         )
@@ -142,7 +142,7 @@ fun AboutScreen(
 
         Row {
             IconButton(
-                onClick = { uriHandler.openUri("https://github.com/Malopieds/InnerTune") },
+                onClick = { uriHandler.openUri("https://github.com/OmusicApp/Omusic") },
             ) {
                 Icon(
                     painter = painterResource(R.drawable.github),

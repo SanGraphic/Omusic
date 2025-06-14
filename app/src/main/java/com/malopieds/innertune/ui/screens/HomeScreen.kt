@@ -27,6 +27,7 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -43,6 +45,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -87,14 +90,29 @@ import com.malopieds.innertune.ui.utils.SnapLayoutInfoProvider
 import com.malopieds.innertune.utils.rememberPreference
 import com.malopieds.innertune.viewmodels.HomeViewModel
 import kotlin.random.Random
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.foundation.clickable
+import com.malopieds.innertune.ui.component.SearchBar
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.SpanStyle
 
 @SuppressLint("UnrememberedMutableState")
 @Suppress("DEPRECATION")
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     navController: NavController,
     viewModel: HomeViewModel = hiltViewModel(),
+    searchBarVisible: Boolean = false,
 ) {
     val menuState = LocalMenuState.current
     val database = LocalDatabase.current
@@ -128,9 +146,7 @@ fun HomeScreen(
 
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val mostPlayedLazyGridState = rememberLazyGridState()
-
     val forgottenFavoritesLazyGridState = rememberLazyGridState()
-
     val listenAgainLazyGridState = rememberLazyGridState()
 
     val innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
@@ -145,10 +161,12 @@ fun HomeScreen(
     val backStackEntry by navController.currentBackStackEntryAsState()
     val scrollToTop = backStackEntry?.savedStateHandle?.getStateFlow("scrollToTop", false)?.collectAsState()
 
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+
     LaunchedEffect(scrollToTop?.value) {
         if (scrollToTop?.value == true) {
             scrollState.animateScrollTo(value = 0)
-            backStackEntry?.savedStateHandle?.set("scrollToTop", false)
+            backStackEntry?.savedStateHandle?.set("scrollToTop", true)
         }
     }
 
@@ -178,141 +196,150 @@ fun HomeScreen(
             Column(
                 modifier = Modifier.verticalScroll(scrollState),
             ) {
-                Spacer(
-                    Modifier.height(
-                        LocalPlayerAwareWindowInsets.current
-                            .asPaddingValues()
-                            .calculateTopPadding(),
-                    ),
-                )
-
-                Row(
-                    modifier =
-                        Modifier
-                            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                            .fillMaxWidth(),
-                ) {
-                    NavigationTile(
-                        title = stringResource(R.string.history),
-                        icon = R.drawable.history,
-                        onClick = { navController.navigate("history") },
-                        modifier = Modifier.weight(1f),
+                if (searchBarVisible) {
+                    Spacer(
+                        Modifier.height(
+                            LocalPlayerAwareWindowInsets.current
+                                .asPaddingValues()
+                                .calculateTopPadding(),
+                        ),
                     )
-
-                    NavigationTile(
-                        title = stringResource(R.string.stats),
-                        icon = R.drawable.trending_up,
-                        onClick = { navController.navigate("stats") },
-                        modifier = Modifier.weight(1f),
-                    )
-
-                    if (isLoggedIn) {
-                        NavigationTile(
-                            title = stringResource(R.string.account),
-                            icon = R.drawable.person,
-                            onClick = {
-                                navController.navigate("account")
-                            },
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
                 }
 
                 quickPicks?.let { quickPicks ->
-                    NavigationTitle(
-                        title = stringResource(R.string.quick_picks),
-                    )
-
-                    if (quickPicks.isEmpty()) {
-                        Box(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .height(ListItemHeight * 4),
+                    if (quickPicks.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(15.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 24.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = stringResource(R.string.quick_picks_empty),
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.align(Alignment.Center),
-                            )
-                        }
-                    } else {
-                        LazyHorizontalGrid(
-                            state = mostPlayedLazyGridState,
-                            rows = GridCells.Fixed(4),
-                            flingBehavior =
-                                rememberSnapFlingBehavior(
-                                    snapLayoutInfoProviderQuickPicks,
-                                ),
-                            contentPadding =
-                                WindowInsets.systemBars
-                                    .only(WindowInsetsSides.Horizontal)
-                                    .asPaddingValues(),
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .height(ListItemHeight * 4),
-                        ) {
-                            items(
-                                items = quickPicks,
-                                key = { it.id },
-                            ) { originalSong ->
-                                val song by database
-                                    .song(originalSong.id)
-                                    .collectAsState(initial = originalSong)
-
-                                SongListItem(
-                                    song = song!!,
-                                    showInLibraryIcon = true,
-                                    isActive = song!!.id == mediaMetadata?.id,
-                                    isPlaying = isPlaying,
-                                    trailingContent = {
-                                        IconButton(
-                                            onClick = {
-                                                menuState.show {
-                                                    SongMenu(
-                                                        originalSong = song!!,
-                                                        navController = navController,
-                                                        onDismiss = menuState::dismiss,
-                                                    )
-                                                }
-                                            },
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(R.drawable.more_vert),
-                                                contentDescription = null,
+                                text = buildAnnotatedString {
+                                    withStyle(
+                                        style = SpanStyle(
+                                            brush = Brush.horizontalGradient(
+                                                colors = listOf(
+                                                    MaterialTheme.colorScheme.primary,
+                                                    MaterialTheme.colorScheme.secondary,
+                                                    MaterialTheme.colorScheme.tertiary
+                                                ),
+                                                tileMode = TileMode.Clamp
                                             )
-                                        }
-                                    },
-                                    modifier =
-                                        Modifier
-                                            .width(horizontalLazyGridItemWidth)
-                                            .combinedClickable(
-                                                onClick = {
-                                                    if (song!!.id == mediaMetadata?.id) {
-                                                        playerConnection.player.togglePlayPause()
-                                                    } else {
-                                                        playerConnection.playQueue(
-                                                            YouTubeQueue(
-                                                                WatchEndpoint(videoId = song!!.id),
-                                                                song!!.toMediaMetadata(),
-                                                            ),
-                                                        )
-                                                    }
-                                                },
-                                                onLongClick = {
-                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                    menuState.show {
-                                                        SongMenu(
-                                                            originalSong = song!!,
-                                                            navController = navController,
-                                                            onDismiss = menuState::dismiss,
-                                                        )
-                                                    }
-                                                },
-                                            ),
+                                        )
+                                    ) {
+                                        append("Your Mix")
+                                    }
+                                },
+                                style = MaterialTheme.typography.displaySmall.copy(
+                                    fontSize = MaterialTheme.typography.displaySmall.fontSize * 0.75f
+                                ),
+                                fontWeight = FontWeight.Black,
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(
+                                onClick = { navController.navigate("history") }
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.history),
+                                    contentDescription = stringResource(R.string.history)
                                 )
+                            }
+                            IconButton(
+                                onClick = { navController.navigate("stats") }
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.trending_up),
+                                    contentDescription = stringResource(R.string.stats)
+                                )
+                            }
+                            if (isLoggedIn) {
+                                IconButton(
+                                    onClick = { navController.navigate("account") }
+                                ) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.person),
+                                        contentDescription = stringResource(R.string.account)
+                                    )
+                                }
+                            }
+                            IconButton(
+                                onClick = { navController.navigate("settings") }
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.settings),
+                                    contentDescription = stringResource(R.string.settings)
+                                )
+                            }
+                            IconButton(
+                                onClick = {
+                                    navController.currentBackStackEntry?.savedStateHandle?.set("active", true)
+                                }
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.search),
+                                    contentDescription = stringResource(R.string.search)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(32.dp))
+                        androidx.compose.foundation.lazy.grid.LazyHorizontalGrid(
+                            rows = androidx.compose.foundation.lazy.grid.GridCells.Fixed(2),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 24.dp, end = 16.dp),
+                            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
+                            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(340.dp)
+                        ) {
+                            items(quickPicks.size) { idx ->
+                                val song = database.song(quickPicks[idx].id).collectAsState(initial = quickPicks[idx]).value!!
+                                Column(
+                                    modifier = Modifier
+                                        .width(110.dp)
+                                        .clickable {
+                                            if (song.id == mediaMetadata?.id) {
+                                                playerConnection.player.togglePlayPause()
+                                            } else {
+                                                playerConnection.playQueue(
+                                                    YouTubeQueue(
+                                                        WatchEndpoint(videoId = song.id),
+                                                        song.toMediaMetadata(),
+                                                    ),
+                                                )
+                                            }
+                                        },
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    androidx.compose.foundation.Image(
+                                        painter = coil.compose.rememberAsyncImagePainter(song.song.thumbnailUrl),
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .width(110.dp)
+                                            .height(110.dp)
+                                            .clip(RoundedCornerShape(12.dp)),
+                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        text = song.song.title,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                        modifier = Modifier.align(Alignment.Start),
+                                    )
+                                    Text(
+                                        text = song.artists.joinToString { it.name },
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.secondary,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                        modifier = Modifier.align(Alignment.Start),
+                                    )
+                                }
                             }
                         }
                     }
@@ -324,46 +351,67 @@ fun HomeScreen(
                         onClick = {
                             navController.navigate("account")
                         },
+                        modifier = Modifier.padding(start = 24.dp),
                     )
-                    LazyRow(
-                        contentPadding =
-                            WindowInsets.systemBars
-                                .only(WindowInsetsSides.Horizontal)
-                                .asPaddingValues(),
+                    Spacer(modifier = Modifier.height(32.dp))
+                    androidx.compose.foundation.lazy.grid.LazyHorizontalGrid(
+                        rows = androidx.compose.foundation.lazy.grid.GridCells.Fixed(2),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 24.dp, end = 16.dp),
+                        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
+                        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(340.dp)
                     ) {
-                        items(
-                            items = youtubePlaylists.orEmpty(),
-                            key = { it.id },
-                        ) { item ->
-                            YouTubeGridItem(
-                                item = item,
-                                modifier =
-                                    Modifier
-                                        .combinedClickable(
-                                            onClick = {
-                                                navController.navigate("online_playlist/${item.id}")
-                                            },
-                                            onLongClick = {
-                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                menuState.show {
-                                                    YouTubePlaylistMenu(
-                                                        playlist = item,
-                                                        coroutineScope = coroutineScope,
-                                                        onDismiss = menuState::dismiss,
-                                                    )
-                                                }
-                                            },
-                                        ),
-                            )
+                        items(youtubePlaylists!!.size) { idx ->
+                            val item = youtubePlaylists!![idx]
+                            Column(
+                                modifier = Modifier
+                                    .width(110.dp)
+                                    .clickable {
+                                        navController.navigate("online_playlist/${item.id}")
+                                    },
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                androidx.compose.foundation.Image(
+                                    painter = coil.compose.rememberAsyncImagePainter(item.thumbnail),
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .width(110.dp)
+                                        .height(110.dp)
+                                        .clip(RoundedCornerShape(12.dp)),
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = item.title,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                    modifier = Modifier.align(Alignment.Start),
+                                )
+                                Text(
+                                    text = item.author?.name ?: "",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.secondary,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                    modifier = Modifier.align(Alignment.Start),
+                                )
+                            }
                         }
                     }
                 }
 
                 if (keepListening?.isNotEmpty() == true) {
                     keepListening?.let {
+                        Spacer(modifier = Modifier.height(48.dp))
                         NavigationTitle(
                             title = stringResource(R.string.keep_listening),
+                            modifier = Modifier.padding(start = 24.dp),
                         )
+                        Spacer(modifier = Modifier.height(16.dp))
 
                         LazyHorizontalGrid(
                             state = listenAgainLazyGridState,
@@ -466,9 +514,12 @@ fun HomeScreen(
                     if (albums.listItem.isNotEmpty()) {
                         NavigationTitle(
                             title = stringResource(R.string.similar_to) + " " + albums.artistName,
+                            modifier = Modifier.padding(start = 24.dp),
                         )
+                        Spacer(modifier = Modifier.height(32.dp))
 
                         LazyRow(
+                            modifier = Modifier.padding(start = 24.dp),
                             contentPadding =
                                 WindowInsets.systemBars
                                     .only(WindowInsetsSides.Horizontal)
@@ -565,7 +616,9 @@ fun HomeScreen(
                     if (forgottenFavorite.isNotEmpty() && forgottenFavorite.size > 5) {
                         NavigationTitle(
                             title = stringResource(R.string.forgotten_favorites),
+                            modifier = Modifier.padding(start = 24.dp),
                         )
+                        Spacer(modifier = Modifier.height(32.dp))
 
                         LazyHorizontalGrid(
                             state = forgottenFavoritesLazyGridState,
@@ -651,47 +704,59 @@ fun HomeScreen(
                         homePlaylists.let { playlists ->
                             NavigationTitle(
                                 title = playlists.playlistName,
+                                modifier = Modifier.padding(start = 24.dp),
                             )
+                            Spacer(modifier = Modifier.height(32.dp))
 
-                            LazyRow(
-                                contentPadding =
-                                    WindowInsets.systemBars
-                                        .only(WindowInsetsSides.Horizontal)
-                                        .asPaddingValues(),
+                            androidx.compose.foundation.lazy.grid.LazyHorizontalGrid(
+                                rows = androidx.compose.foundation.lazy.grid.GridCells.Fixed(2),
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 24.dp, end = 16.dp),
+                                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
+                                verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(340.dp)
                             ) {
-                                items(
-                                    items = playlists.playlists,
-                                    key = { it.id },
-                                ) { playlist ->
+                                items(playlists.playlists.size) { idx ->
+                                    val playlist = playlists.playlists[idx]
                                     playlist.author ?: run {
-                                        playlist.author =
-                                            Artist(name = "YouTube Music", id = null)
+                                        playlist.author = Artist(name = "YouTube Music", id = null)
                                     }
-                                    YouTubeGridItem(
-                                        item = playlist,
-                                        isActive = mediaMetadata?.album?.id == playlist.id,
-                                        isPlaying = isPlaying,
-                                        coroutineScope = coroutineScope,
-                                        modifier =
-                                            Modifier
-                                                .combinedClickable(
-                                                    onClick = {
-                                                        navController.navigate("online_playlist/${playlist.id}")
-                                                    },
-                                                    onLongClick = {
-                                                        haptic.performHapticFeedback(
-                                                            HapticFeedbackType.LongPress,
-                                                        )
-                                                        menuState.show {
-                                                            YouTubePlaylistMenu(
-                                                                playlist = playlist,
-                                                                coroutineScope = coroutineScope,
-                                                                onDismiss = menuState::dismiss,
-                                                            )
-                                                        }
-                                                    },
-                                                ).animateItemPlacement(),
-                                    )
+                                    Column(
+                                        modifier = Modifier
+                                            .width(110.dp)
+                                            .clickable {
+                                                navController.navigate("online_playlist/${playlist.id}")
+                                            },
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        androidx.compose.foundation.Image(
+                                            painter = coil.compose.rememberAsyncImagePainter(playlist.thumbnail),
+                                            contentDescription = null,
+                                            modifier = Modifier
+                                                .width(110.dp)
+                                                .height(110.dp)
+                                                .clip(RoundedCornerShape(12.dp)),
+                                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                        )
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text(
+                                            text = playlist.title,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                            modifier = Modifier.align(Alignment.Start),
+                                        )
+                                        Text(
+                                            text = playlist.author?.name ?: "",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.secondary,
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                            modifier = Modifier.align(Alignment.Start),
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -702,9 +767,12 @@ fun HomeScreen(
                     if (albums.recommendationAlbum.isNotEmpty()) {
                         NavigationTitle(
                             title = stringResource(R.string.similar_to) + " " + albums.recommendedAlbum.name,
+                            modifier = Modifier.padding(start = 24.dp),
                         )
+                        Spacer(modifier = Modifier.height(32.dp))
 
                         LazyRow(
+                            modifier = Modifier.padding(start = 24.dp),
                             contentPadding =
                                 WindowInsets.systemBars
                                     .only(WindowInsetsSides.Horizontal)
@@ -751,47 +819,59 @@ fun HomeScreen(
                         homePlaylists.let { playlists ->
                             NavigationTitle(
                                 title = playlists.playlistName,
+                                modifier = Modifier.padding(start = 24.dp),
                             )
+                            Spacer(modifier = Modifier.height(32.dp))
 
-                            LazyRow(
-                                contentPadding =
-                                    WindowInsets.systemBars
-                                        .only(WindowInsetsSides.Horizontal)
-                                        .asPaddingValues(),
+                            androidx.compose.foundation.lazy.grid.LazyHorizontalGrid(
+                                rows = androidx.compose.foundation.lazy.grid.GridCells.Fixed(2),
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 24.dp, end = 16.dp),
+                                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
+                                verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(340.dp)
                             ) {
-                                items(
-                                    items = playlists.playlists,
-                                    key = { it.id },
-                                ) { playlist ->
+                                items(playlists.playlists.size) { idx ->
+                                    val playlist = playlists.playlists[idx]
                                     playlist.author ?: run {
-                                        playlist.author =
-                                            Artist(name = "YouTube Music", id = null)
+                                        playlist.author = Artist(name = "YouTube Music", id = null)
                                     }
-                                    YouTubeGridItem(
-                                        item = playlist,
-                                        isActive = mediaMetadata?.album?.id == playlist.id,
-                                        isPlaying = isPlaying,
-                                        coroutineScope = coroutineScope,
-                                        modifier =
-                                            Modifier
-                                                .combinedClickable(
-                                                    onClick = {
-                                                        navController.navigate("online_playlist/${playlist.id}")
-                                                    },
-                                                    onLongClick = {
-                                                        haptic.performHapticFeedback(
-                                                            HapticFeedbackType.LongPress,
-                                                        )
-                                                        menuState.show {
-                                                            YouTubePlaylistMenu(
-                                                                playlist = playlist,
-                                                                coroutineScope = coroutineScope,
-                                                                onDismiss = menuState::dismiss,
-                                                            )
-                                                        }
-                                                    },
-                                                ).animateItemPlacement(),
-                                    )
+                                    Column(
+                                        modifier = Modifier
+                                            .width(110.dp)
+                                            .clickable {
+                                                navController.navigate("online_playlist/${playlist.id}")
+                                            },
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        androidx.compose.foundation.Image(
+                                            painter = coil.compose.rememberAsyncImagePainter(playlist.thumbnail),
+                                            contentDescription = null,
+                                            modifier = Modifier
+                                                .width(110.dp)
+                                                .height(110.dp)
+                                                .clip(RoundedCornerShape(12.dp)),
+                                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                        )
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text(
+                                            text = playlist.title,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                            modifier = Modifier.align(Alignment.Start),
+                                        )
+                                        Text(
+                                            text = playlist.author?.name ?: "",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.secondary,
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                            modifier = Modifier.align(Alignment.Start),
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -802,9 +882,12 @@ fun HomeScreen(
                     if (albums.listItem.isNotEmpty()) {
                         NavigationTitle(
                             title = stringResource(R.string.similar_to) + " " + albums.artistName,
+                            modifier = Modifier.padding(start = 24.dp),
                         )
+                        Spacer(modifier = Modifier.height(32.dp))
 
                         LazyRow(
+                            modifier = Modifier.padding(start = 24.dp),
                             contentPadding =
                                 WindowInsets.systemBars
                                     .only(WindowInsetsSides.Horizontal)
@@ -902,47 +985,59 @@ fun HomeScreen(
                         homePlaylists.let { playlists ->
                             NavigationTitle(
                                 title = playlists.playlistName,
+                                modifier = Modifier.padding(start = 24.dp),
                             )
+                            Spacer(modifier = Modifier.height(32.dp))
 
-                            LazyRow(
-                                contentPadding =
-                                    WindowInsets.systemBars
-                                        .only(WindowInsetsSides.Horizontal)
-                                        .asPaddingValues(),
+                            androidx.compose.foundation.lazy.grid.LazyHorizontalGrid(
+                                rows = androidx.compose.foundation.lazy.grid.GridCells.Fixed(2),
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 24.dp, end = 16.dp),
+                                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
+                                verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(340.dp)
                             ) {
-                                items(
-                                    items = playlists.playlists,
-                                    key = { it.id },
-                                ) { playlist ->
+                                items(playlists.playlists.size) { idx ->
+                                    val playlist = playlists.playlists[idx]
                                     playlist.author ?: run {
-                                        playlist.author =
-                                            Artist(name = "YouTube Music", id = null)
+                                        playlist.author = Artist(name = "YouTube Music", id = null)
                                     }
-                                    YouTubeGridItem(
-                                        item = playlist,
-                                        isActive = mediaMetadata?.album?.id == playlist.id,
-                                        isPlaying = isPlaying,
-                                        coroutineScope = coroutineScope,
-                                        modifier =
-                                            Modifier
-                                                .combinedClickable(
-                                                    onClick = {
-                                                        navController.navigate("online_playlist/${playlist.id}")
-                                                    },
-                                                    onLongClick = {
-                                                        haptic.performHapticFeedback(
-                                                            HapticFeedbackType.LongPress,
-                                                        )
-                                                        menuState.show {
-                                                            YouTubePlaylistMenu(
-                                                                playlist = playlist,
-                                                                coroutineScope = coroutineScope,
-                                                                onDismiss = menuState::dismiss,
-                                                            )
-                                                        }
-                                                    },
-                                                ).animateItemPlacement(),
-                                    )
+                                    Column(
+                                        modifier = Modifier
+                                            .width(110.dp)
+                                            .clickable {
+                                                navController.navigate("online_playlist/${playlist.id}")
+                                            },
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        androidx.compose.foundation.Image(
+                                            painter = coil.compose.rememberAsyncImagePainter(playlist.thumbnail),
+                                            contentDescription = null,
+                                            modifier = Modifier
+                                                .width(110.dp)
+                                                .height(110.dp)
+                                                .clip(RoundedCornerShape(12.dp)),
+                                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                        )
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text(
+                                            text = playlist.title,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                            modifier = Modifier.align(Alignment.Start),
+                                        )
+                                        Text(
+                                            text = playlist.author?.name ?: "",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.secondary,
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                            modifier = Modifier.align(Alignment.Start),
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -953,9 +1048,12 @@ fun HomeScreen(
                     if (albums.recommendationAlbum.isNotEmpty()) {
                         NavigationTitle(
                             title = stringResource(R.string.similar_to) + " " + albums.recommendedAlbum.name,
+                            modifier = Modifier.padding(start = 24.dp),
                         )
+                        Spacer(modifier = Modifier.height(32.dp))
 
                         LazyRow(
+                            modifier = Modifier.padding(start = 24.dp),
                             contentPadding =
                                 WindowInsets.systemBars
                                     .only(WindowInsetsSides.Horizontal)
@@ -1002,47 +1100,59 @@ fun HomeScreen(
                         homePlaylists.let { playlists ->
                             NavigationTitle(
                                 title = playlists.playlistName,
+                                modifier = Modifier.padding(start = 24.dp),
                             )
+                            Spacer(modifier = Modifier.height(32.dp))
 
-                            LazyRow(
-                                contentPadding =
-                                    WindowInsets.systemBars
-                                        .only(WindowInsetsSides.Horizontal)
-                                        .asPaddingValues(),
+                            androidx.compose.foundation.lazy.grid.LazyHorizontalGrid(
+                                rows = androidx.compose.foundation.lazy.grid.GridCells.Fixed(2),
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 24.dp, end = 16.dp),
+                                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
+                                verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(340.dp)
                             ) {
-                                items(
-                                    items = playlists.playlists,
-                                    key = { it.id },
-                                ) { playlist ->
+                                items(playlists.playlists.size) { idx ->
+                                    val playlist = playlists.playlists[idx]
                                     playlist.author ?: run {
-                                        playlist.author =
-                                            Artist(name = "YouTube Music", id = null)
+                                        playlist.author = Artist(name = "YouTube Music", id = null)
                                     }
-                                    YouTubeGridItem(
-                                        item = playlist,
-                                        isActive = mediaMetadata?.album?.id == playlist.id,
-                                        isPlaying = isPlaying,
-                                        coroutineScope = coroutineScope,
-                                        modifier =
-                                            Modifier
-                                                .combinedClickable(
-                                                    onClick = {
-                                                        navController.navigate("online_playlist/${playlist.id}")
-                                                    },
-                                                    onLongClick = {
-                                                        haptic.performHapticFeedback(
-                                                            HapticFeedbackType.LongPress,
-                                                        )
-                                                        menuState.show {
-                                                            YouTubePlaylistMenu(
-                                                                playlist = playlist,
-                                                                coroutineScope = coroutineScope,
-                                                                onDismiss = menuState::dismiss,
-                                                            )
-                                                        }
-                                                    },
-                                                ).animateItemPlacement(),
-                                    )
+                                    Column(
+                                        modifier = Modifier
+                                            .width(110.dp)
+                                            .clickable {
+                                                navController.navigate("online_playlist/${playlist.id}")
+                                            },
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        androidx.compose.foundation.Image(
+                                            painter = coil.compose.rememberAsyncImagePainter(playlist.thumbnail),
+                                            contentDescription = null,
+                                            modifier = Modifier
+                                                .width(110.dp)
+                                                .height(110.dp)
+                                                .clip(RoundedCornerShape(12.dp)),
+                                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                        )
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text(
+                                            text = playlist.title,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                            modifier = Modifier.align(Alignment.Start),
+                                        )
+                                        Text(
+                                            text = playlist.author?.name ?: "",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.secondary,
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                            modifier = Modifier.align(Alignment.Start),
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -1053,9 +1163,12 @@ fun HomeScreen(
                     if (albums.listItem.isNotEmpty()) {
                         NavigationTitle(
                             title = stringResource(R.string.similar_to) + " " + albums.artistName,
+                            modifier = Modifier.padding(start = 24.dp),
                         )
+                        Spacer(modifier = Modifier.height(32.dp))
 
                         LazyRow(
+                            modifier = Modifier.padding(start = 24.dp),
                             contentPadding =
                                 WindowInsets.systemBars
                                     .only(WindowInsetsSides.Horizontal)
@@ -1154,9 +1267,12 @@ fun HomeScreen(
                         onClick = {
                             navController.navigate("new_release")
                         },
+                        modifier = Modifier.padding(start = 24.dp),
                     )
+                    Spacer(modifier = Modifier.height(32.dp))
 
                     LazyRow(
+                        modifier = Modifier.padding(start = 24.dp),
                         contentPadding =
                             WindowInsets.systemBars
                                 .only(WindowInsetsSides.Horizontal)
