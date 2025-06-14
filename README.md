@@ -33,8 +33,8 @@ A fork of InnerTune, now rebranded as Omusic: A Material 3 YouTube Music client 
 
 <p float="left">
   <img src="https://raw.githubusercontent.com/SanGraphic/Omusic/refs/heads/main/fastlane/metadata/android/en-US/images/phoneScreenshots/GtYl1k4X0AACOHt.jpg" width="200" />
-  <img src="https://raw.githubusercontent.com/SanGraphic/Omusic/main/fastlane/metadata/android/en-US/images/phoneScreenshots/02.png" width="200" />
-  <img src="https://raw.githubusercontent.com/SanGraphic/Omusic/main/fastlane/metadata/android/en-US/images/phoneScreenshots/03.png" width="200" />
+  <img src="https://raw.githubusercontent.com/SanGraphic/Omusic/refs/heads/main/fastlane/metadata/android/en-US/images/phoneScreenshots/GtYl1lEakAAzsof.jpg" width="200" />
+  <img src="https://raw.githubusercontent.com/SanGraphic/Omusic/refs/heads/main/fastlane/metadata/android/en-US/images/phoneScreenshots/GtYl1oWWsAAfGWu.jpg" width="200" />
 </p>
 <p float="left">
   <img src="https://raw.githubusercontent.com/SanGraphic/Omusic/main/fastlane/metadata/android/en-US/images/phoneScreenshots/04.png" width="200" />
